@@ -202,23 +202,32 @@ async function handleChat(req, res) {
     const detail = await upstream.text().catch(() => '');
     console.error('OpenAI error', upstream.status, detail.slice(0, 500));
 
-    // pull the specific reason out of OpenAI's error body when there is one
+    // pull the specific reason out of OpenAI's error body when there is one.
+    // code and type are read separately: a no-credit account answers with
+    // type "insufficient_quota" but code "credit_balance_exhausted".
     let code = '';
+    let type = '';
     try {
       const parsed = JSON.parse(detail);
-      code = parsed?.error?.code || parsed?.error?.type || '';
+      code = parsed?.error?.code || '';
+      type = parsed?.error?.type || '';
     } catch {
       /* not JSON */
     }
+
+    const noCredit =
+      type === 'insufficient_quota' ||
+      code === 'insufficient_quota' ||
+      code === 'credit_balance_exhausted';
 
     let message = `The model returned an error (${upstream.status}).`;
 
     if (upstream.status === 401) {
       message = 'The API key was rejected. Check OPENAI_API_KEY in Railway.';
-    } else if (code === 'insufficient_quota') {
+    } else if (noCredit) {
       message =
-        'This OpenAI account has no API credit. Add credit at platform.openai.com → Billing. ' +
-        'A ChatGPT Plus subscription does not cover API usage.';
+        'This OpenAI account has no API credit left. Add credit at ' +
+        'platform.openai.com → Settings → Billing. A ChatGPT Plus subscription does not cover API usage.';
     } else if (upstream.status === 429) {
       message = 'Too many requests to the model right now. Wait a few seconds and try again.';
     } else if (upstream.status === 404) {
