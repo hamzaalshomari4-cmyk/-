@@ -251,6 +251,64 @@ svg { display: block; }
   letter-spacing: 0.004em;
 }
 
+/* live chat inside the composer */
+.composer-input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+  color: #fff;
+  font-family: inherit;
+  line-height: 1.4;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+.composer-input::placeholder { color: var(--placeholder); }
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+  margin-bottom: 14px;
+  padding-right: 4px;
+  text-align: left;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.chat-log .row { display: flex; }
+.chat-log .row.user { justify-content: flex-end; }
+.chat-log .row.ai, .chat-log .row.err { justify-content: flex-start; }
+
+.chat-log .b {
+  max-width: 82%;
+  border-radius: clamp(11px, 1.1vw, 15px);
+  padding: clamp(8px, 0.9vw, 13px) clamp(11px, 1.2vw, 16px);
+  font-size: clamp(0.85rem, 1.05vw, 1.02rem);
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-log .row.user .b { background: #1c1c1c; color: #efefef; }
+.chat-log .row.ai .b { background: rgba(255, 255, 255, 0.04); color: #efefef; }
+.chat-log .row.err .b { background: rgba(255, 90, 80, 0.12); color: #ffb3ad; }
+
+.dots { display: inline-flex; gap: 4px; align-items: center; height: 1.2em; }
+.dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #8a8a8a;
+  animation: blink 1.2s infinite;
+}
+.dots i:nth-child(2) { animation-delay: 0.2s; }
+.dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+
+.send[disabled] { opacity: 0.5; cursor: default; }
+
 .controls {
   margin-top: auto;
   display: flex;
@@ -743,7 +801,16 @@ html.entrance-s2 .section-two .hl-mask { overflow: hidden; }
         <div class="composer">
           <div class="composer-glow" data-enter aria-hidden="true"></div>
 
-          <div class="composer-placeholder" data-enter>Break down a decision, problem, or idea&hellip;</div>
+          <div class="chat-log" id="chatLog" hidden></div>
+
+          <textarea
+            class="composer-placeholder composer-input"
+            id="composerInput"
+            rows="1"
+            aria-label="Message Aurora"
+            placeholder="Break down a decision, problem, or idea&hellip;"
+            data-enter
+          ></textarea>
 
           <div class="controls">
             <button class="chip round" aria-label="Add attachment" data-enter data-ctrl>
@@ -770,7 +837,7 @@ html.entrance-s2 .section-two .hl-mask { overflow: hidden; }
               </svg>
             </button>
 
-            <button class="send" aria-label="Send" data-enter data-ctrl>
+            <button class="send" id="sendBtn" aria-label="Send" data-enter data-ctrl>
               <span class="send-inner">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#fafafa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 19V5M5 12l7-7 7 7"></path>
@@ -1163,6 +1230,141 @@ html.entrance-s2 .section-two .hl-mask { overflow: hidden; }
 
     io.observe(section);
   })();
+})();
+</script>
+
+<script>
+/* ---------------------------------------------------------------------
+   Live chat — talks to /api/chat, which proxies OpenAI on the server.
+   The API key lives only in the server's environment variables.
+   --------------------------------------------------------------------- */
+(function () {
+  'use strict';
+
+  var input = document.getElementById('composerInput');
+  var log = document.getElementById('chatLog');
+  var send = document.getElementById('sendBtn');
+  if (!input || !log || !send) return;
+
+  var history = [];
+  var busy = false;
+
+  function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+  function addRow(kind, text) {
+    var row = document.createElement('div');
+    row.className = 'row ' + kind;
+
+    var bubble = document.createElement('div');
+    bubble.className = 'b';
+    bubble.textContent = text;
+
+    row.appendChild(bubble);
+    log.appendChild(row);
+    scrollDown();
+    return bubble;
+  }
+
+  function fail(bubble, message) {
+    bubble.parentNode.className = 'row err';
+    bubble.textContent = message;
+    scrollDown();
+  }
+
+  function autoGrow() {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, window.innerHeight * 0.3) + 'px';
+  }
+
+  input.addEventListener('input', autoGrow);
+
+  input.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      submit();
+    }
+  });
+
+  send.addEventListener('click', submit);
+
+  async function submit() {
+    if (busy) return;
+
+    var text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    autoGrow();
+    log.hidden = false;
+
+    addRow('user', text);
+    history.push({ role: 'user', content: text });
+
+    busy = true;
+    send.disabled = true;
+
+    var bubble = addRow('ai', '');
+    bubble.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+
+    var answer = '';
+
+    try {
+      var response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+
+      if (!response.ok || !response.body) {
+        var payload = await response.json().catch(function () { return {}; });
+        fail(bubble, payload.error || 'Something went wrong.');
+        return;
+      }
+
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+
+        buffer += decoder.decode(chunk.value, { stream: true });
+
+        var index;
+        while ((index = buffer.indexOf('\n\n')) !== -1) {
+          var frame = buffer.slice(0, index).trim();
+          buffer = buffer.slice(index + 2);
+
+          if (frame.indexOf('data:') !== 0) continue;
+
+          var data = frame.slice(5).trim();
+          if (data === '[DONE]') continue;
+
+          try {
+            var parsed = JSON.parse(data);
+            if (parsed.error) { fail(bubble, parsed.error); return; }
+            if (parsed.t) {
+              answer += parsed.t;
+              bubble.textContent = answer;
+              scrollDown();
+            }
+          } catch (e) { /* partial frame */ }
+        }
+      }
+
+      if (!answer) {
+        fail(bubble, 'No reply came back.');
+      } else {
+        history.push({ role: 'assistant', content: answer });
+      }
+    } catch (e) {
+      fail(bubble, 'Connection lost. Try again.');
+    } finally {
+      busy = false;
+      send.disabled = false;
+    }
+  }
 })();
 </script>
 </body>
