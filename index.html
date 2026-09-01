@@ -394,6 +394,108 @@ body {
 .logos .l3 { width: calc(88.68 * var(--u)); }
 
 /* ==========================================================================
+   LIVE MODE — the card becomes a real conversation after the first message.
+   Until then the composition stays exactly as designed.
+   ========================================================================== */
+.ph::placeholder { color: #8B8C8E; opacity: 1; }
+textarea.ph {
+  color: #e9e9ec;
+  resize: none;
+  font-family: inherit;
+  width: auto;
+}
+
+.chatlog { display: none; }
+
+.card.live {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(14 * var(--u));
+  padding: calc(18 * var(--u));
+}
+.card.live .chatlog {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--u));
+  max-height: min(38vh, calc(300 * var(--u)));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .18) transparent;
+}
+.card.live .ph {
+  position: static;
+  right: auto;
+  left: auto;
+  top: auto;
+  width: 100%;
+  white-space: pre-wrap;
+  font-size: calc(11.5 * var(--u));
+  line-height: 1.4;
+  max-height: calc(120 * var(--u));
+  overflow-y: auto;
+}
+.card.live .tools {
+  position: static;
+  height: auto;
+  right: auto;
+  left: auto;
+  top: auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(10 * var(--u));
+}
+.card.live .right {
+  position: static;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 0;
+  pointer-events: auto;
+}
+.card.live .right > * { position: static; }
+.card.live .attach { margin-left: calc(16 * var(--u)); }
+.card.live .send { margin-left: calc(16 * var(--u)); }
+
+.msg { display: flex; }
+.msg.me { justify-content: flex-end; }
+.msg.ai, .msg.err { justify-content: flex-start; }
+.msg .bub {
+  max-width: 84%;
+  border-radius: calc(12 * var(--u));
+  padding: calc(9 * var(--u)) calc(13 * var(--u));
+  font-size: calc(11 * var(--u));
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg.me .bub { background: rgba(255, 255, 255, .09); color: #f2f2f4; }
+.msg.ai .bub { background: rgba(255, 255, 255, .035); color: #dedee2; }
+.msg.err .bub { background: rgba(232, 134, 84, .14); color: #F8B285; }
+
+.typing { display: inline-flex; gap: calc(4 * var(--u)); align-items: center; }
+.typing i {
+  width: calc(4.5 * var(--u));
+  height: calc(4.5 * var(--u));
+  border-radius: 50%;
+  background: #8B8C8E;
+  animation: blink 1.2s infinite;
+}
+.typing i:nth-child(2) { animation-delay: .2s; }
+.typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25 } 40% { opacity: 1 } }
+
+.send[disabled] { opacity: .55; cursor: default; }
+
+@media (max-width: 599px), (max-height: 599px) and (max-width: 1180px) {
+  .card.live .ph { font-size: 14px; }
+  .msg .bub { font-size: 13px; }
+  .card.live .chatlog { max-height: 34vh; }
+}
+
+/* ==========================================================================
    ENTRANCE
    ========================================================================== */
 @keyframes e-settle-down {
@@ -724,8 +826,12 @@ body {
     <main class="hero">
       <h1 class="h1">Describe an app. We&rsquo;ll build it.</h1>
 
-      <form class="card" onsubmit="return false">
-        <p class="ph">Build a fintech tracking app with bank level privacy and...</p>
+      <form class="card" id="card" onsubmit="return false">
+        <div class="chatlog" id="chatLog"></div>
+
+        <textarea class="ph" id="composerInput" rows="1" spellcheck="false"
+          aria-label="Describe your app"
+          placeholder="Build a fintech tracking app with bank level privacy and..."></textarea>
 
         <div class="tools">
           <div class="chips">
@@ -771,7 +877,7 @@ body {
               </svg>
             </button>
 
-            <button type="button" class="send" aria-label="Build it">
+            <button type="button" class="send" id="sendBtn" aria-label="Build it">
               <svg viewBox="0 0 12 13" fill="#fff" aria-hidden="true">
                 <path d="M6 0 11.2 5.2 9.8 6.6 7 3.8V13H5V3.8L2.2 6.6.8 5.2 6 0Z"></path>
               </svg>
@@ -821,6 +927,137 @@ body {
   var last = document.querySelector('.logos svg:nth-child(3)');
   if (last) last.addEventListener('animationend', teardown, { once: true });
   setTimeout(teardown, 2600);
+})();
+</script>
+
+<script>
+/* ---------------------------------------------------------------------
+   Live chat — posts to /api/chat, which proxies OpenAI server-side.
+   The API key never reaches the browser.
+   --------------------------------------------------------------------- */
+(function () {
+  'use strict';
+
+  var card = document.getElementById('card');
+  var input = document.getElementById('composerInput');
+  var log = document.getElementById('chatLog');
+  var send = document.getElementById('sendBtn');
+  if (!card || !input || !log || !send) return;
+
+  var history = [];
+  var busy = false;
+
+  function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+  function addMsg(kind, text) {
+    var row = document.createElement('div');
+    row.className = 'msg ' + kind;
+    var bub = document.createElement('div');
+    bub.className = 'bub';
+    bub.textContent = text;
+    row.appendChild(bub);
+    log.appendChild(row);
+    scrollDown();
+    return bub;
+  }
+
+  function fail(bub, message) {
+    bub.parentNode.className = 'msg err';
+    bub.textContent = message;
+    scrollDown();
+  }
+
+  function grow() {
+    if (!card.classList.contains('live')) return;
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, window.innerHeight * 0.22) + 'px';
+  }
+
+  input.addEventListener('input', grow);
+
+  input.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      submit();
+    }
+  });
+
+  send.addEventListener('click', submit);
+
+  async function submit() {
+    if (busy) return;
+
+    var text = input.value.trim();
+    if (!text) { input.focus(); return; }
+
+    card.classList.add('live');
+    input.value = '';
+    grow();
+
+    addMsg('me', text);
+    history.push({ role: 'user', content: text });
+
+    busy = true;
+    send.disabled = true;
+
+    var bub = addMsg('ai', '');
+    bub.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+
+    var answer = '';
+
+    try {
+      var response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history }),
+      });
+
+      if (!response.ok || !response.body) {
+        var payload = await response.json().catch(function () { return {}; });
+        fail(bub, payload.error || 'Something went wrong.');
+        return;
+      }
+
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+
+        buffer += decoder.decode(chunk.value, { stream: true });
+
+        var index;
+        while ((index = buffer.indexOf('\n\n')) !== -1) {
+          var frame = buffer.slice(0, index).trim();
+          buffer = buffer.slice(index + 2);
+
+          if (frame.indexOf('data:') !== 0) continue;
+          var data = frame.slice(5).trim();
+          if (data === '[DONE]') continue;
+
+          try {
+            var parsed = JSON.parse(data);
+            if (parsed.error) { fail(bub, parsed.error); return; }
+            if (parsed.t) {
+              answer += parsed.t;
+              bub.textContent = answer;
+              scrollDown();
+            }
+          } catch (e) { /* partial frame */ }
+        }
+      }
+
+      if (!answer) fail(bub, 'No reply came back.');
+      else history.push({ role: 'assistant', content: answer });
+    } catch (e) {
+      fail(bub, 'Connection lost. Try again.');
+    } finally {
+      busy = false;
+      send.disabled = false;
+    }
+  }
 })();
 </script>
 
