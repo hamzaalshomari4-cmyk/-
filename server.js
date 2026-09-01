@@ -201,17 +201,32 @@ async function handleChat(req, res) {
   if (!upstream.ok || !upstream.body) {
     const detail = await upstream.text().catch(() => '');
     console.error('OpenAI error', upstream.status, detail.slice(0, 500));
+
+    // pull the specific reason out of OpenAI's error body when there is one
+    let code = '';
+    try {
+      const parsed = JSON.parse(detail);
+      code = parsed?.error?.code || parsed?.error?.type || '';
+    } catch {
+      /* not JSON */
+    }
+
+    let message = `The model returned an error (${upstream.status}).`;
+
+    if (upstream.status === 401) {
+      message = 'The API key was rejected. Check OPENAI_API_KEY in Railway.';
+    } else if (code === 'insufficient_quota') {
+      message =
+        'This OpenAI account has no API credit. Add credit at platform.openai.com → Billing. ' +
+        'A ChatGPT Plus subscription does not cover API usage.';
+    } else if (upstream.status === 429) {
+      message = 'Too many requests to the model right now. Wait a few seconds and try again.';
+    } else if (upstream.status === 404) {
+      message = `The model "${OPENAI_MODEL}" is not available to this account. Try another OPENAI_MODEL.`;
+    }
+
     res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(
-      JSON.stringify({
-        error:
-          upstream.status === 401
-            ? 'The API key was rejected.'
-            : upstream.status === 429
-              ? 'The model is rate limited or out of quota.'
-              : `The model returned an error (${upstream.status}).`,
-      })
-    );
+    res.end(JSON.stringify({ error: message }));
     return;
   }
 
