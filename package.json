@@ -1,0 +1,12 @@
+{
+  "name": "aurora-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Aurora landing page + sign up / log in. Static, no build step, no dependencies.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

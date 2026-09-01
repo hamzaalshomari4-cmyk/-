@@ -1,0 +1,270 @@
+/* ==========================================================================
+   Aurora — shared styles for signup.html and login.html
+   Mirrors the Tailwind v4 design: black canvas, brand-gray fields, Inter.
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --brand-gray: #1a1a1a;
+}
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background: #000;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection { background: rgba(255, 255, 255, 0.3); }
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input { font: inherit; }
+a { color: inherit; text-decoration: none; }
+
+main { display: flex; min-height: 100vh; width: 100%; background: #000; padding: 8px; }
+
+/* ------------------------------------------------------ left column (hero) */
+.hero { display: none; }
+
+.hero video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-content { position: relative; z-index: 10; width: 100%; max-width: 320px; }
+.hero-content > * + * { margin-top: 32px; }
+
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand svg { width: 20px; height: 20px; fill: #fff; color: #fff; }
+.brand span { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -0.025em; }
+
+.hero-heading > * + * { margin-top: 12px; }
+.hero-heading h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}
+.hero-heading p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  line-height: 1.625;
+  padding: 0 16px;
+}
+
+.steps > * + * { margin-top: 12px; }
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.step .num {
+  display: flex;
+  height: 24px;
+  width: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.step .txt { font-size: 14px; font-weight: 500; }
+
+.step.active { background: #fff; color: #000; border: 1px solid #fff; }
+.step.active .num { background: #000; color: #fff; }
+
+.step.idle { background: var(--brand-gray); color: #fff; border: none; }
+.step.idle .num { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.4); }
+
+/* ----------------------------------------------------- right column (form) */
+.form-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  overflow-y: auto;
+}
+
+.form-inner { width: 100%; max-width: 576px; }
+.form-inner > * + * { margin-top: 32px; }
+
+.head h2 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.head p { margin: 8px 0 0; color: rgba(255, 255, 255, 0.4); font-size: 14px; }
+
+.socials { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.social {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+.social:hover { background: rgba(255, 255, 255, 0.05); }
+.social svg { width: 20px; height: 20px; }
+
+.divider { position: relative; display: flex; align-items: center; }
+.divider .line { width: 100%; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.divider span {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+form > * + * { margin-top: 20px; }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.field > * + * { margin-top: 8px; }
+.field label { display: block; font-size: 14px; font-weight: 500; color: #fff; }
+.field input {
+  width: 100%;
+  background: var(--brand-gray);
+  border: none;
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 16px;
+  color: #fff;
+  outline: none;
+}
+.field input::placeholder { color: rgba(255, 255, 255, 0.2); }
+.field input:focus { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2); }
+
+.pw { position: relative; }
+.pw input { padding-right: 48px; }
+.pw .eye {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  transition: color 0.15s ease;
+}
+.pw .eye:hover { color: rgba(255, 255, 255, 0.8); }
+.pw .eye svg { width: 16px; height: 16px; }
+
+.hint { margin: 8px 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.3); }
+
+.label-row { display: flex; align-items: center; justify-content: space-between; }
+.label-row a { font-size: 12px; color: rgba(255, 255, 255, 0.4); }
+.label-row a:hover { color: rgba(255, 255, 255, 0.8); }
+
+.submit {
+  width: 100%;
+  height: 56px;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-top: 16px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.submit:hover { background: rgba(255, 255, 255, 0.9); }
+.submit:active { transform: scale(0.98); }
+
+.foot { text-align: center; font-size: 14px; color: rgba(255, 255, 255, 0.4); }
+.foot a { color: #fff; font-weight: 500; }
+.foot a:hover { text-decoration: underline; }
+
+/* back-to-site link, shown on small screens where the hero is hidden */
+.back {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.back:hover { color: #fff; }
+.back svg { width: 15px; height: 15px; }
+
+/* ------------------------------------------------------------- breakpoints */
+@media (min-width: 640px) {
+  .form-col { padding-left: 48px; padding-right: 48px; }
+}
+
+@media (min-width: 1024px) {
+  main { height: 100vh; overflow: hidden; padding: 16px; }
+
+  .hero {
+    display: flex;
+    width: 52%;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 48px 128px;
+    border-radius: 24px;
+    overflow: hidden;
+    height: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .form-col { padding: 24px 64px; overflow: hidden; }
+  .form-inner > * + * { margin-top: 24px; }
+
+  .back { display: none; }
+}
+
+@media (min-width: 1280px) {
+  .form-col { padding-left: 96px; padding-right: 96px; }
+}
+
+/* --------------------------------------------------------------- entrance */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.hero-content > * { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.hero-content > *:nth-child(1) { animation-delay: 0.20s; }
+.hero-content > *:nth-child(2) { animation-delay: 0.35s; }
+.hero-content > *:nth-child(3) { animation-delay: 0.50s; }
+
+.steps > * { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.steps > *:nth-child(1) { animation-delay: 0.50s; }
+.steps > *:nth-child(2) { animation-delay: 0.65s; }
+.steps > *:nth-child(3) { animation-delay: 0.80s; }
+
+.form-inner { animation: fade 0.8s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
