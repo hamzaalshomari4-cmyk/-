@@ -225,6 +225,9 @@ async function handleChat(req, res) {
       message = `The model "${OPENAI_MODEL}" is not available to this account. Try another OPENAI_MODEL.`;
     }
 
+    // the exact upstream code makes remote debugging possible — no secrets in it
+    if (code) message += ` (${code})`;
+
     res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ error: message }));
     return;
@@ -301,6 +304,78 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: 'Server error.' }));
       } else {
         res.end();
+      }
+    });
+    return;
+  }
+
+  /* One-shot diagnostic: open /api/diag in a browser to see exactly what
+     OpenAI answers. It never returns the API key. Safe to delete once the
+     chat works. */
+  if (urlPath === '/api/diag') {
+    (async () => {
+      const report = {
+        keySet: Boolean(OPENAI_API_KEY),
+        keyLength: OPENAI_API_KEY.length,
+        keyLooksLikeProject: OPENAI_API_KEY.startsWith('sk-proj-'),
+        model: OPENAI_MODEL,
+        baseUrl: OPENAI_BASE_URL,
+      };
+
+      if (!OPENAI_API_KEY) {
+        report.result = 'OPENAI_API_KEY is not set in this environment.';
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(report, null, 2));
+        return;
+      }
+
+      try {
+        const probe = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: OPENAI_MODEL,
+            max_tokens: 1,
+            messages: [{ role: 'user', content: 'ping' }],
+          }),
+        });
+
+        report.status = probe.status;
+
+        const limits = {};
+        probe.headers.forEach((value, key) => {
+          if (key.startsWith('x-ratelimit') || key === 'retry-after') limits[key] = value;
+        });
+        report.rateLimitHeaders = limits;
+
+        const text = await probe.text();
+
+        if (probe.ok) {
+          report.result = 'OK — the model answered. The chat should work.';
+        } else {
+          try {
+            const parsed = JSON.parse(text);
+            report.errorType = parsed?.error?.type || null;
+            report.errorCode = parsed?.error?.code || null;
+            report.errorMessage = (parsed?.error?.message || '').slice(0, 400);
+          } catch {
+            report.rawBody = text.slice(0, 400);
+          }
+          report.result = 'The request reached OpenAI but was rejected — see errorCode / errorMessage.';
+        }
+      } catch (err) {
+        report.result = 'Could not reach OpenAI at all: ' + err.message;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(report, null, 2));
+    })().catch(() => {
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end('{"error":"diag failed"}');
       }
     });
     return;
