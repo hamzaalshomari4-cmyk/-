@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fastshot — Get started</title>
+<meta name="description" content="Fastshot turns a written description into a working app.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=block" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Fastshot — onboarding + authentication
+   Same visual language as the landing hero: Inter, #0a0d12, glass card,
+   orange gradient primary, purple mark, #F8B285 focus.
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+button, input, textarea, select { font: inherit; color: inherit; background: none; border: 0; }
+img, svg { display: block; }
+a { color: inherit; text-decoration: none; }
+
+:root {
+  --ink: #0a0d12;
+  --glass: rgba(41, 41, 43, .955);
+  --hair: rgba(214, 228, 255, .14);
+  --text: #ffffff;
+  --muted: #9a9ba0;
+  --dim: #8B8C8E;
+  --accent-1: #FBBC94;
+  --accent-2: #F49D70;
+  --accent-3: #E88654;
+  --focus: #F8B285;
+  --mark: #9C86CE;
+
+  --font: Inter, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --r-card: 26px;
+  --r-ctl: 14px;
+
+  --e-primary: cubic-bezier(.16, 1, .3, 1);
+  --e-soft: cubic-bezier(.22, 1, .36, 1);
+  --dur: .42s;
+
+  --pad-x: clamp(20px, 5vw, 64px);
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font);
+  overflow: hidden;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- stage */
+.stage { position: fixed; inset: 0; overflow: hidden; background: var(--ink); }
+
+.stage-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* soft scrim: keeps form text legible over the footage without hiding it */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 40%, rgba(10, 13, 18, .30) 0%, rgba(10, 13, 18, .74) 78%),
+    linear-gradient(180deg, rgba(10, 13, 18, .55) 0%, rgba(10, 13, 18, .18) 34%, rgba(10, 13, 18, .72) 100%);
+}
+
+.shell {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding:
+    max(clamp(18px, 3.4vh, 34px), env(safe-area-inset-top))
+    max(var(--pad-x), env(safe-area-inset-right))
+    max(clamp(18px, 3.2vh, 32px), env(safe-area-inset-bottom))
+    max(var(--pad-x), env(safe-area-inset-left));
+}
+
+/* ----------------------------------------------------------------- head */
+.head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+.brand { display: inline-flex; align-items: center; gap: 12px; }
+.brand .mark { width: clamp(28px, 3vw, 34px); height: clamp(28px, 3vw, 34px); }
+.brand .word {
+  font-size: clamp(16px, 1.6vw, 18.5px);
+  font-weight: 500;
+  letter-spacing: -.0154em;
+  font-variation-settings: "opsz" 32;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, .30);
+}
+
+.skip {
+  font-size: clamp(13px, 1.2vw, 15px);
+  font-weight: 500;
+  color: var(--muted);
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+.skip:hover { color: #fff; }
+
+/* ---------------------------------------------------------------- views */
+.views {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: clamp(12px, 2.4vh, 26px) 0 0;
+}
+
+.view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(var(--dx, 24px));
+  transition:
+    opacity var(--dur) var(--e-soft),
+    transform var(--dur) var(--e-primary),
+    visibility 0s linear var(--dur);
+}
+.view.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition:
+    opacity var(--dur) var(--e-soft),
+    transform var(--dur) var(--e-primary),
+    visibility 0s;
+}
+
+/* ------------------------------------------------------ onboarding body */
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(18px, 3vh, 30px);
+  max-width: 760px;
+  padding: clamp(8px, 2vh, 24px) 0;
+}
+
+.eyebrow {
+  font-size: clamp(11px, 1.1vw, 13px);
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent-1);
+}
+
+h1 {
+  font-size: clamp(30px, 5.4vw, 62px);
+  font-weight: 410;
+  line-height: 1.08;
+  letter-spacing: .0018em;
+  font-variation-settings: "opsz" 32;
+  text-shadow: 0 2px 22px rgba(0, 0, 0, .35);
+  max-width: 16ch;
+}
+
+.lede {
+  font-size: clamp(14px, 1.5vw, 19px);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: .007em;
+  color: rgba(255, 255, 255, .74);
+  max-width: 52ch;
+}
+
+/* ---- how it works ---- */
+.steps { display: flex; flex-direction: column; gap: clamp(12px, 2vh, 18px); max-width: 620px; }
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(12px, 1.6vw, 18px);
+  padding: clamp(13px, 1.8vh, 18px) clamp(14px, 1.8vw, 20px);
+  border-radius: 18px;
+  background: rgba(41, 41, 43, .72);
+  -webkit-backdrop-filter: blur(18px) saturate(112%);
+  backdrop-filter: blur(18px) saturate(112%);
+  box-shadow: inset 0 0 0 1px var(--hair);
+}
+
+.step .ico {
+  flex: none;
+  width: clamp(36px, 4vw, 44px);
+  height: clamp(36px, 4vw, 44px);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(163deg, rgba(251, 188, 148, .22) 0%, rgba(232, 134, 84, .16) 100%);
+  color: var(--accent-1);
+}
+.step .ico svg { width: 55%; }
+
+.step h3 {
+  font-size: clamp(15px, 1.5vw, 18px);
+  font-weight: 500;
+  letter-spacing: -.005em;
+  margin-bottom: 4px;
+}
+.step p {
+  font-size: clamp(12.5px, 1.25vw, 15px);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, .62);
+}
+.step .num {
+  flex: none;
+  font-size: clamp(12px, 1.2vw, 14px);
+  font-weight: 500;
+  color: var(--dim);
+  margin-left: auto;
+  padding-left: 8px;
+}
+
+/* ------------------------------------------------------------- footbar */
+.footbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: clamp(14px, 2.4vh, 24px);
+}
+
+.progress { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.bars { display: flex; gap: 6px; }
+.bars i {
+  display: block;
+  width: 26px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .22);
+  transition: background .3s ease, width .3s ease;
+}
+.bars i.on { background: var(--accent-2); width: 40px; }
+.bars i.done { background: rgba(255, 255, 255, .5); }
+.step-label { font-size: clamp(11.5px, 1.1vw, 13px); color: var(--muted); font-weight: 500; }
+
+/* ---------------------------------------------------------------- buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: clamp(46px, 5.4vh, 54px);
+  padding: 0 clamp(20px, 2.4vw, 30px);
+  border-radius: 999px;
+  font-size: clamp(14px, 1.3vw, 16px);
+  font-weight: 520;
+  letter-spacing: -.0127em;
+  cursor: pointer;
+  transition: filter .18s ease, transform .1s ease, background .18s ease, border-color .18s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(.98); }
+
+.btn-primary {
+  color: #221108;
+  font-weight: 600;
+  background: linear-gradient(163deg, var(--accent-1) 0%, var(--accent-2) 46%, var(--accent-3) 100%);
+  box-shadow: 0 6px 20px rgba(210, 110, 60, .34);
+}
+.btn-primary:hover { filter: brightness(1.06); }
+
+.btn-dark {
+  background: linear-gradient(180deg, #3d3d3f 0%, #1d1d20 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 2px 14px rgba(0, 0, 0, .28);
+}
+.btn-dark:hover { filter: brightness(1.16); }
+
+.btn-ghost {
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+  color: rgba(255, 255, 255, .92);
+}
+.btn-ghost:hover { background: rgba(255, 255, 255, .11); }
+
+.btn-quiet {
+  height: auto;
+  padding: 10px 6px;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+  font-weight: 500;
+  border-radius: 8px;
+}
+.btn-quiet:hover { color: #fff; }
+
+.btn-block { width: 100%; }
+
+/* ------------------------------------------------------------ auth card */
+.center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(8px, 2vh, 20px) 0;
+}
+
+.card {
+  width: 100%;
+  max-width: 468px;
+  border-radius: var(--r-card);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(26px) saturate(112%);
+  backdrop-filter: blur(26px) saturate(112%);
+  box-shadow: inset 0 0 0 1px var(--hair), 0 22px 60px rgba(0, 0, 0, .40);
+  padding: clamp(22px, 3.4vw, 34px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2.4vh, 22px);
+}
+
+.card h2 {
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 410;
+  line-height: 1.12;
+  letter-spacing: .0018em;
+  font-variation-settings: "opsz" 32;
+}
+.card .sub {
+  font-size: clamp(13px, 1.3vw, 15px);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, .58);
+  margin-top: 7px;
+}
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label { font-size: 13.5px; font-weight: 500; color: rgba(255, 255, 255, .92); }
+.field input {
+  height: 48px;
+  padding: 0 15px;
+  border-radius: var(--r-ctl);
+  background: rgba(255, 255, 255, .055);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09);
+  color: #fff;
+  font-size: 15px;
+  transition: box-shadow .18s ease, background .18s ease;
+}
+.field input::placeholder { color: rgba(255, 255, 255, .28); }
+.field input:hover { background: rgba(255, 255, 255, .075); }
+.field input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, .085);
+  box-shadow: inset 0 0 0 1px rgba(248, 178, 133, .55);
+}
+.field input[aria-invalid="true"] {
+  box-shadow: inset 0 0 0 1px rgba(255, 122, 108, .75);
+}
+
+.err {
+  display: none;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #FFA79C;
+}
+.err.on { display: flex; gap: 6px; align-items: flex-start; }
+.err.on::before { content: "!"; font-weight: 700; }
+
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.divider { display: flex; align-items: center; gap: 14px; color: rgba(255, 255, 255, .38); font-size: 12px; }
+.divider::before, .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, .12);
+}
+
+.foot-note { font-size: 13.5px; color: rgba(255, 255, 255, .55); text-align: center; }
+.foot-note button { color: #fff; font-weight: 500; cursor: pointer; }
+.foot-note button:hover { text-decoration: underline; }
+
+.back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 6px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+.back-link:hover { color: #fff; }
+.back-link svg { width: 15px; }
+
+.notice {
+  display: none;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  background: rgba(251, 188, 148, .10);
+  box-shadow: inset 0 0 0 1px rgba(251, 188, 148, .28);
+  color: #F8CBA9;
+}
+.notice.on { display: flex; }
+.notice svg { flex: none; width: 16px; margin-top: 1px; }
+
+/* success state */
+.done-mark {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(163deg, var(--accent-1) 0%, var(--accent-3) 100%);
+  box-shadow: 0 8px 22px rgba(210, 110, 60, .34);
+  color: #221108;
+}
+.done-mark svg { width: 26px; }
+
+/* ------------------------------------------------------------- entrance */
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.boot .brand { animation: rise .55s var(--e-soft) .05s both; }
+.boot .scrim { animation: fade .7s ease both; }
+.boot .view.is-active .eyebrow { animation: rise .5s var(--e-soft) .18s both; }
+.boot .view.is-active h1 { animation: rise .7s var(--e-primary) .26s both; }
+.boot .view.is-active .lede { animation: rise .6s var(--e-soft) .40s both; }
+.boot .view.is-active .steps { animation: rise .6s var(--e-soft) .40s both; }
+.boot .view.is-active .card { animation: rise .7s var(--e-primary) .30s both; }
+.boot .view.is-active .footbar { animation: rise .5s var(--e-soft) .56s both; }
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 720px) {
+  .pane { justify-content: flex-end; padding-bottom: clamp(10px, 2vh, 20px); }
+  h1 { max-width: 100%; }
+  .footbar { flex-wrap: wrap; }
+  .progress { width: 100%; margin-right: 0; order: -1; padding-bottom: 6px; }
+  /* Next stays bottom-right and stays a comfortable tap target */
+  .footbar .btn { min-width: 132px; padding: 0 22px; }
+  .footbar .btn-primary { margin-left: auto; order: 3; }
+  .card { max-width: 100%; }
+}
+
+@media (max-height: 620px) {
+  .pane { gap: 12px; }
+  h1 { font-size: clamp(24px, 4.4vh, 36px); }
+  .lede { font-size: 13.5px; }
+  .step { padding: 10px 12px; }
+  .card { gap: 13px; padding: 18px; }
+  .field input { height: 44px; }
+  .btn { height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view { transform: none !important; transition: opacity .12s linear, visibility 0s linear .12s; }
+  .view.is-active { transition: opacity .12s linear, visibility 0s; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .12s !important;
+  }
+}
+</style>
+</head>
+<body class="boot">
+
+<div class="stage">
+  <video class="stage-video" autoplay muted loop playsinline>
+    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260826_124724_bc041163-d651-425f-aea3-2acc1efc2c96.mp4" type="video/mp4">
+  </video>
+  <div class="scrim"></div>
+
+  <div class="shell">
+
+    <header class="head">
+      <a class="brand" href="./index.html" aria-label="Fastshot home">
+        <svg class="mark" viewBox="0 0 34 34" aria-hidden="true">
+          <circle cx="17" cy="17" r="17" fill="#9C86CE"></circle>
+          <circle cx="17" cy="17" r="8.6" fill="#FFFFFF"></circle>
+          <circle cx="17" cy="17" r="3.7" fill="#151519"></circle>
+        </svg>
+        <span class="word">Fastshot</span>
+      </a>
+
+      <button type="button" class="skip" id="skipBtn">Skip</button>
+    </header>
+
+    <div class="views" id="views">
+
+      <!-- ============================================ 1 — introduction -->
+      <section class="view" id="v-intro" role="group" aria-label="Onboarding step 1 of 3" tabindex="-1">
+        <div class="pane">
+          <p class="eyebrow">Welcome to Fastshot</p>
+          <h1>Turn your signals into clear, actionable insights.</h1>
+          <p class="lede">
+            Fastshot watches the things that matter to your product — usage, errors, feedback,
+            revenue — and turns the noise into a short list of decisions worth making today.
+            Describe what you care about in plain words; we handle the rest.
+          </p>
+        </div>
+
+        <div class="footbar">
+          <div class="progress">
+            <div class="bars" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+            <span class="step-label">Step 1 of 3</span>
+          </div>
+          <button type="button" class="btn btn-primary" data-go="v-how">
+            Next
+            <svg viewBox="0 0 16 16" width="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================ 2 — how it works -->
+      <section class="view" id="v-how" role="group" aria-label="Onboarding step 2 of 3" tabindex="-1">
+        <div class="pane">
+          <p class="eyebrow">How it works</p>
+          <h1>Three steps, start to decision.</h1>
+
+          <div class="steps">
+            <article class="step">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2.5-7 4 14L15.5 12H22"/></svg>
+              </span>
+              <div>
+                <h3>Monitor your signals</h3>
+                <p>Connect the sources you already use. Fastshot keeps watching so you don't have to.</p>
+              </div>
+              <span class="num" aria-hidden="true">01</span>
+            </article>
+
+            <article class="step">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+              <div>
+                <h3>Understand what matters</h3>
+                <p>Every change is ranked and explained in one line, so the signal never gets buried.</p>
+              </div>
+              <span class="num" aria-hidden="true">02</span>
+            </article>
+
+            <article class="step">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>
+              </span>
+              <div>
+                <h3>Take action faster</h3>
+                <p>Turn any insight into a task, a message, or a working prototype in one click.</p>
+              </div>
+              <span class="num" aria-hidden="true">03</span>
+            </article>
+          </div>
+        </div>
+
+        <div class="footbar">
+          <div class="progress">
+            <div class="bars" aria-hidden="true"><i class="done"></i><i class="on"></i><i></i></div>
+            <span class="step-label">Step 2 of 3</span>
+          </div>
+          <button type="button" class="btn btn-ghost" data-back="v-intro">
+            <svg viewBox="0 0 16 16" width="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+            Back
+          </button>
+          <button type="button" class="btn btn-primary" data-go="v-welcome">
+            Next
+            <svg viewBox="0 0 16 16" width="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================ 3 — welcome -->
+      <section class="view" id="v-welcome" role="group" aria-label="Onboarding step 3 of 3" tabindex="-1">
+        <div class="center">
+          <div class="card">
+            <div>
+              <h2>Welcome</h2>
+              <p class="sub">Choose how you&rsquo;d like to continue.</p>
+            </div>
+
+            <div class="stack">
+              <button type="button" class="btn btn-primary btn-block" data-go="v-login">Log In</button>
+              <button type="button" class="btn btn-dark btn-block" data-go="v-register">Create Account</button>
+              <button type="button" class="btn btn-quiet" data-go="v-forgot">Forgot Password?</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="footbar">
+          <div class="progress">
+            <div class="bars" aria-hidden="true"><i class="done"></i><i class="done"></i><i class="on"></i></div>
+            <span class="step-label">Step 3 of 3</span>
+          </div>
+          <button type="button" class="btn btn-ghost" data-back="v-how" id="welcomeBack">
+            <svg viewBox="0 0 16 16" width="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+            Back
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================ log in -->
+      <section class="view" id="v-login" role="group" aria-label="Log in" tabindex="-1">
+        <div class="center">
+          <form class="card" id="loginForm" novalidate>
+            <button type="button" class="back-link" data-back="v-welcome">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+              Back
+            </button>
+
+            <div>
+              <h2>Log in</h2>
+              <p class="sub">Continue where you left off.</p>
+            </div>
+
+            <div class="notice" id="loginNotice" role="status">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm0 3.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm1 9.1H7V7h2v5.5Z"/></svg>
+              <span id="loginNoticeText"></span>
+            </div>
+
+            <div class="field">
+              <label for="login-email">Email</label>
+              <input id="login-email" name="email" type="email" autocomplete="email" placeholder="you@company.com" aria-describedby="login-email-err">
+              <p class="err" id="login-email-err" role="alert"></p>
+            </div>
+
+            <div class="field">
+              <label for="login-password">Password</label>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" aria-describedby="login-password-err">
+              <p class="err" id="login-password-err" role="alert"></p>
+            </div>
+
+            <div class="row-between">
+              <button type="button" class="btn btn-quiet" data-go="v-forgot">Forgot password?</button>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Log In</button>
+
+            <div class="divider">or</div>
+
+            <button type="button" class="btn btn-ghost btn-block" data-social="Google">
+              <svg viewBox="0 0 18 18" width="17" aria-hidden="true">
+                <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.3-.2-1.9H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5Z"/>
+                <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18Z"/>
+                <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3Z"/>
+                <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6Z"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            <p class="foot-note">New here? <button type="button" data-go="v-register">Create an account</button></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================ create account -->
+      <section class="view" id="v-register" role="group" aria-label="Create account" tabindex="-1">
+        <div class="center">
+          <form class="card" id="registerForm" novalidate>
+            <button type="button" class="back-link" data-back="v-welcome">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+              Back
+            </button>
+
+            <div>
+              <h2>Create account</h2>
+              <p class="sub">A minute to set up. Free while you explore.</p>
+            </div>
+
+            <div class="notice" id="registerNotice" role="status">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm0 3.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm1 9.1H7V7h2v5.5Z"/></svg>
+              <span id="registerNoticeText"></span>
+            </div>
+
+            <div class="field">
+              <label for="reg-name">Full name</label>
+              <input id="reg-name" name="name" type="text" autocomplete="name" placeholder="Jane Doe" aria-describedby="reg-name-err">
+              <p class="err" id="reg-name-err" role="alert"></p>
+            </div>
+
+            <div class="field">
+              <label for="reg-email">Email</label>
+              <input id="reg-email" name="email" type="email" autocomplete="email" placeholder="you@company.com" aria-describedby="reg-email-err">
+              <p class="err" id="reg-email-err" role="alert"></p>
+            </div>
+
+            <div class="field">
+              <label for="reg-password">Password</label>
+              <input id="reg-password" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="reg-password-err">
+              <p class="err" id="reg-password-err" role="alert"></p>
+            </div>
+
+            <div class="field">
+              <label for="reg-confirm">Confirm password</label>
+              <input id="reg-confirm" name="confirm" type="password" autocomplete="new-password" placeholder="Repeat your password" aria-describedby="reg-confirm-err">
+              <p class="err" id="reg-confirm-err" role="alert"></p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+
+            <div class="divider">or</div>
+
+            <button type="button" class="btn btn-ghost btn-block" data-social="Google">
+              <svg viewBox="0 0 18 18" width="17" aria-hidden="true">
+                <path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.3-.2-1.9H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5Z"/>
+                <path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18Z"/>
+                <path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3Z"/>
+                <path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6Z"/>
+              </svg>
+              Sign up with Google
+            </button>
+
+            <p class="foot-note">Already have an account? <button type="button" data-go="v-login">Log in</button></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================ forgot password -->
+      <section class="view" id="v-forgot" role="group" aria-label="Reset password" tabindex="-1">
+        <div class="center">
+          <form class="card" id="forgotForm" novalidate>
+            <button type="button" class="back-link" data-back="v-login">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8H3M7 4 3 8l4 4"/></svg>
+              Back to log in
+            </button>
+
+            <div>
+              <h2>Reset password</h2>
+              <p class="sub">Enter your email and we&rsquo;ll send you a reset link.</p>
+            </div>
+
+            <div class="notice" id="forgotNotice" role="status">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm0 3.4a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm1 9.1H7V7h2v5.5Z"/></svg>
+              <span id="forgotNoticeText"></span>
+            </div>
+
+            <div class="field">
+              <label for="forgot-email">Email address</label>
+              <input id="forgot-email" name="email" type="email" autocomplete="email" placeholder="you@company.com" aria-describedby="forgot-email-err">
+              <p class="err" id="forgot-email-err" role="alert"></p>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Send Reset Link</button>
+
+            <p class="foot-note">Remembered it? <button type="button" data-go="v-login">Back to log in</button></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================ reset sent -->
+      <section class="view" id="v-sent" role="group" aria-label="Reset link sent" tabindex="-1">
+        <div class="center">
+          <div class="card" style="align-items:center;text-align:center">
+            <div class="done-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>
+            </div>
+
+            <div>
+              <h2>Check your inbox</h2>
+              <p class="sub">
+                If an account exists for <strong id="sentEmail">that address</strong>, a password
+                reset link is on its way. The link expires in 30 minutes.
+              </p>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-block" data-go="v-login">Back to Log In</button>
+            <p class="foot-note">Didn&rsquo;t get it? <button type="button" data-back="v-forgot">Try another address</button></p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   View router — no page reloads, direction-aware slide + fade.
+   Onboarding completion is remembered in localStorage.
+   Reset it during development with:
+     localStorage.removeItem('onboardingCompleted')
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var ONBOARD_KEY = 'onboardingCompleted';
+  var ONBOARDING = ['v-intro', 'v-how'];
+  var views = document.getElementById('views');
+  var skip = document.getElementById('skipBtn');
+  var current = null;
+
+  function store(action, value) {
+    try {
+      if (action === 'get') return localStorage.getItem(ONBOARD_KEY);
+      if (action === 'set') localStorage.setItem(ONBOARD_KEY, value);
+    } catch (e) { /* private mode — onboarding simply shows again */ }
+    return null;
+  }
+
+  function isOnboarding(id) { return ONBOARDING.indexOf(id) !== -1; }
+
+  function go(id, direction) {
+    var next = document.getElementById(id);
+    if (!next || next === current) return;
+
+    var back = direction === 'back';
+    next.style.setProperty('--dx', back ? '-26px' : '26px');
+
+    if (current) {
+      current.style.setProperty('--dx', back ? '26px' : '-26px');
+      current.classList.remove('is-active');
+    }
+
+    // let the browser apply the start transform before activating
+    requestAnimationFrame(function () {
+      next.classList.add('is-active');
+    });
+
+    current = next;
+
+    // reaching the welcome screen means onboarding is done
+    if (id === 'v-welcome' || !isOnboarding(id)) store('set', 'true');
+
+    skip.hidden = !isOnboarding(id);
+
+    // move focus so keyboard and screen-reader users follow the view
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    setTimeout(function () {
+      next.focus({ preventScroll: true });
+      next.scrollTop = 0;
+    }, 60);
+  }
+
+  views.addEventListener('click', function (event) {
+    var forward = event.target.closest('[data-go]');
+    if (forward) { go(forward.getAttribute('data-go'), 'next'); return; }
+
+    var backward = event.target.closest('[data-back]');
+    if (backward) { go(backward.getAttribute('data-back'), 'back'); }
+  });
+
+  skip.addEventListener('click', function () { go('v-welcome', 'next'); });
+
+  /* ---------------------------------------------------------- validation */
+  function setError(input, errorId, message) {
+    var box = document.getElementById(errorId);
+    if (message) {
+      input.setAttribute('aria-invalid', 'true');
+      box.textContent = message;
+      box.classList.add('on');
+      return false;
+    }
+    input.removeAttribute('aria-invalid');
+    box.textContent = '';
+    box.classList.remove('on');
+    return true;
+  }
+
+  function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
+
+  function notice(id, textId, message) {
+    document.getElementById(textId).textContent = message;
+    document.getElementById(id).classList.add('on');
+  }
+
+  var NOT_WIRED =
+    'This form is not connected to an account system yet — nothing was sent or saved.';
+
+  /* login */
+  document.getElementById('loginForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var email = document.getElementById('login-email');
+    var password = document.getElementById('login-password');
+
+    var ok = setError(email, 'login-email-err',
+      !email.value.trim() ? 'Enter your email address.'
+        : !validEmail(email.value.trim()) ? 'That email address does not look right.' : '');
+
+    ok = setError(password, 'login-password-err',
+      !password.value ? 'Enter your password.' : '') && ok;
+
+    if (!ok) { (email.getAttribute('aria-invalid') ? email : password).focus(); return; }
+    notice('loginNotice', 'loginNoticeText', NOT_WIRED);
+  });
+
+  /* register */
+  document.getElementById('registerForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var name = document.getElementById('reg-name');
+    var email = document.getElementById('reg-email');
+    var password = document.getElementById('reg-password');
+    var confirm = document.getElementById('reg-confirm');
+
+    var ok = setError(name, 'reg-name-err', !name.value.trim() ? 'Enter your full name.' : '');
+
+    ok = setError(email, 'reg-email-err',
+      !email.value.trim() ? 'Enter your email address.'
+        : !validEmail(email.value.trim()) ? 'That email address does not look right.' : '') && ok;
+
+    ok = setError(password, 'reg-password-err',
+      !password.value ? 'Choose a password.'
+        : password.value.length < 8 ? 'Use at least 8 characters.' : '') && ok;
+
+    ok = setError(confirm, 'reg-confirm-err',
+      !confirm.value ? 'Repeat your password.'
+        : confirm.value !== password.value ? 'The two passwords do not match.' : '') && ok;
+
+    if (!ok) {
+      var first = document.querySelector('#registerForm [aria-invalid="true"]');
+      if (first) first.focus();
+      return;
+    }
+    notice('registerNotice', 'registerNoticeText', NOT_WIRED);
+  });
+
+  /* forgot */
+  document.getElementById('forgotForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var email = document.getElementById('forgot-email');
+
+    var ok = setError(email, 'forgot-email-err',
+      !email.value.trim() ? 'Enter your email address.'
+        : !validEmail(email.value.trim()) ? 'That email address does not look right.' : '');
+
+    if (!ok) { email.focus(); return; }
+
+    document.getElementById('sentEmail').textContent = email.value.trim();
+    go('v-sent', 'next');
+  });
+
+  /* social buttons have no provider wired up yet */
+  document.querySelectorAll('[data-social]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var form = button.closest('form');
+      if (form && form.id === 'registerForm') {
+        notice('registerNotice', 'registerNoticeText', 'Google sign-up is not connected yet.');
+      } else {
+        notice('loginNotice', 'loginNoticeText', 'Google sign-in is not connected yet.');
+      }
+    });
+  });
+
+  /* --------------------------------------------------------------- boot */
+  var start = store('get') === 'true' ? 'v-welcome' : 'v-intro';
+  var first = document.getElementById(start);
+  first.style.setProperty('--dx', '0px');
+  first.classList.add('is-active');
+  current = first;
+  skip.hidden = !isOnboarding(start);
+
+  window.addEventListener('load', function () {
+    setTimeout(function () { document.body.classList.remove('boot'); }, 1400);
+  });
+})();
+</script>
+
+</body>
+</html>
